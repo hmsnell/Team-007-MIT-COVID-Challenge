@@ -3,6 +3,8 @@ title: "Hannah's Working File"
 author: "Hannah Snell"
 date: "5/30/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -11,17 +13,26 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(leaflet)
 library(sf)
+library(maps)
+library("rnaturalearth")
+library("rnaturalearthdata")
+library(rgeos)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
 ```
 
 ```{r, read in data}
-statepop <- read_csv("statepop2019.csv")  
+statepop2019 <- read_csv("statepop2019.csv")  
 uspharmacies <- read_csv("uspharmacies.csv")
 ```
 
 ```{r, fixing state pop df}
-statepop <- statepop %>% 
-  
-
+# Clean up statepop
+colnames(statepop2019)[1] <- "State"
+colnames(statepop2019)[13] <- "Population"
+statepop <- statepop2019 %>% 
+  select("State", "Population")
+statepop <- statepop[-1,]
 ```
 
 ```{r, initial us pharmacies leaflet}
@@ -31,9 +42,164 @@ uspharmacies <- uspharmacies %>%
   select(-"formated_phone", -"Status", -"Icon")
 
 # build map 
-uspharmaciesmap <- leaflet() %>%
-  addTiles() %>%  
-  addMarkers(lng = uspharmacies$Longitude, lat = uspharmacies$Latitude)
-uspharmaciesmap
+# uspharmaciesmap <- leaflet() %>%
+#   addTiles() %>%  
+#   addMarkers(lng = uspharmacies$Longitude, lat = uspharmacies$Latitude)
+# uspharmaciesmap
 ```
+
+```{r}
+# attempting to use ggmaps instead
+
+# measure empty pharma regions by population ct / pharmacy ct and map on US map. High number means that high population to pharmacy ratio = bad. 
+
+statepop <- statepop %>%
+  mutate(State = recode(State, 
+                          ".Alabama" = "AL",
+                           ".Alaska" = "AK",
+                           ".Arizona" = "AZ",
+                           ".Arkansas" = "AR",
+                           ".California" = "CA",
+                           ".Colorado" = "CO",
+                           ".Connecticut" = "CT",
+                           ".Delaware" = "DE",
+                           ".District Of Columbia" = "DC",
+                           ".Florida" = "FL",
+                           ".Georgia" = "GA",
+                           ".Hawaii" = "HI",
+                           ".Idaho" = "ID",
+                           ".Illinois" = "IL",
+                           ".Indiana" = "IN", 
+                           ".Iowa" = "IA",
+                           ".Kansas" = "KS",
+                           ".Kentucky" = "KY",
+                           ".Louisiana" = "LA", 
+                           ".Maine" = "ME",
+                           ".Maryland" = "MD",
+                           ".Massachusetts" = "MA",
+                           ".Michigan" = "MI",
+                           ".Minnesota" = "MN",
+                           ".Mississippi" = "MS",
+                           ".Missouri" = "MO",
+                           ".Montana" = "MT",
+                           ".Nebraska" = "NE",
+                           ".Nevada" = "NV",
+                           ".New Hampshire" = "NH",
+                           ".New Jersey" = "NJ",
+                           ".New Mexico" = "NM",
+                           ".New York" = "NY",
+                           ".North Carolina" = "NC",
+                           ".North Dakota" = "ND",
+                           ".Ohio" = "OH",
+                           ".Oklahoma" = "OK",
+                           ".Oregon" = "OR",
+                           ".Pennsylvania" = "PA",
+                           ".Rhode Island" = "RI",
+                           ".South Carolina" = "SC",
+                           ".South Dakota" = "SD",
+                           ".Tennessee" = "TN",
+                           ".Texas" = "TX",
+                           ".Utah" = "UT",
+                           ".Vermont" = "VT",
+                           ".Virginia" = "VA",
+                           ".Washington" = "WA",
+                           ".West Virginia" = "WV",
+                           ".Wisconsin" = "WI",
+                           ".Wyoming" = "WY")) 
+
+```
+
+```{r}
+statepharmacy <- uspharmacies %>% 
+  left_join(statepop, by = "State") %>% 
+  group_by(State) %>% 
+  mutate(totalpharmacies = n()) 
+statepharmacy <- statepharmacy %>% 
+  mutate(ratio = totalpharmacies / Population) %>% 
+  select(State, Population, totalpharmacies, ratio) %>% 
+  distinct(State, .keep_all = TRUE) %>% 
+  filter(!State %in% c("VI", "GU", "PR"))
+```
+
+```{r}
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+
+states <- states %>% 
+  mutate(ID, recode(ID, 
+                           "alabama" = "AL",
+                           "alaska" = "AK",
+                           "arizona" = "AZ",
+                           "arkansas" = "AR",
+                           "california" = "CA",
+                           "colorado" = "CO",
+                           "connecticut" = "CT",
+                           "delaware" = "DE",
+                           "district of columbia" = "DC",
+                           "florida" = "FL",
+                           "georgia" = "GA",
+                           "hawaii" = "HI",
+                           "idaho" = "ID",
+                           "illinois" = "IL",
+                           "indiana" = "IN", 
+                           "iowa" = "IA",
+                           "kansas" = "KS",
+                           "kentucky" = "KY",
+                           "louisiana" = "LA", 
+                           "maine" = "ME",
+                           "maryland" = "MD",
+                           "massachusetts" = "MA",
+                           "michigan" = "MI",
+                           "minnesota" = "MN",
+                           "mississippi" = "MS",
+                           "missouri" = "MO",
+                           "montana" = "MT",
+                           "nebraska" = "NE",
+                           "nevada" = "NV",
+                           "new hampshire" = "NH",
+                           "new jersey" = "NJ",
+                           "new mexico" = "NM",
+                           "new york" = "NY",
+                           "north carolina" = "NC",
+                           "north dakota" = "ND",
+                           "ohio" = "OH",
+                           "oklahoma" = "OK",
+                           "oregon" = "OR",
+                           "pennsylvania" = "PA",
+                           "rhode island" = "RI",
+                           "south carolina" = "SC",
+                           "south dakota" = "SD",
+                           "tennessee" = "TN",
+                           "texas" = "TX",
+                           "utah" = "UT",
+                           "vermont" = "VT",
+                           "virginia" = "VA",
+                           "washington" = "WA",
+                           "west virginia" = "WV",
+                           "wisconsin" = "WI",
+                           "wyoming" = "WY")) 
+
+
+```
+
+```{r}
+colnames(states)[3] <- "State"
+
+states <- states %>% 
+  left_join(statepharmacy, by = "State")
+
+ggplot() +
+  geom_sf(data = states, aes(fill = ratio)) + labs(x = "Longitude", y = "Latitude", title = "Ratio of Potential Pharmacies for COVID Testing \n to Population Density per State") 
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
