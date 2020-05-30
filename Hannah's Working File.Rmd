@@ -1,0 +1,39 @@
+---
+title: "Hannah's Working File"
+author: "Hannah Snell"
+date: "5/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(leaflet)
+library(sf)
+```
+
+```{r, read in data}
+statepop <- read_csv("statepop2019.csv")  
+uspharmacies <- read_csv("uspharmacies.csv")
+```
+
+```{r, fixing state pop df}
+statepop <- statepop %>% 
+  
+
+```
+
+```{r, initial us pharmacies leaflet}
+# remove dialysis centers 
+uspharmacies <- uspharmacies %>% 
+  filter(Type != "Dialysis Center") %>% 
+  select(-"formated_phone", -"Status", -"Icon")
+
+# build map 
+uspharmaciesmap <- leaflet() %>%
+  addTiles() %>%  
+  addMarkers(lng = uspharmacies$Longitude, lat = uspharmacies$Latitude)
+uspharmaciesmap
+```
+
