@@ -116,7 +116,7 @@ statepharmacy <- uspharmacies %>%
   mutate(totalpharmacies = n()) 
 statepharmacy <- statepharmacy %>% 
   mutate(ratio = totalpharmacies / Population) %>% 
-  select(State, Population, totalpharmacies, ratio) %>% 
+  select(State, Population, totalpharmacies, ratio, Latitude, Longitude) %>% 
   distinct(State, .keep_all = TRUE) %>% 
   filter(!State %in% c("VI", "GU", "PR"))
 ```
@@ -178,17 +178,22 @@ states <- states %>%
                            "wisconsin" = "WI",
                            "wyoming" = "WY")) 
 
-
+sf_cent <- st_centroid(states)
 ```
 
 ```{r}
 colnames(states)[3] <- "State"
+colnames(sf_cent)[3] <- "State"
 
 states <- states %>% 
   left_join(statepharmacy, by = "State")
 
 ggplot() +
-  geom_sf(data = states, aes(fill = ratio)) + labs(x = "Longitude", y = "Latitude", title = "Ratio of Potential Pharmacies for COVID Testing \n to Population Density per State") 
+  geom_sf(data = states, aes(fill = ratio)) + 
+  #geom_text(data = states, aes(Longitude, Latitude, label = State), size = 2.5) +
+  labs(x = "Longitude", y = "Latitude", title = "Ratio of Potential Pharmacies for COVID-19 Testing \n to Population Density per State") 
+# + 
+#   geom_text(data = sf_cent, aes(label = State, x = Longitude, y = Latitude, color = 'yellow'))
 ```
 
 
