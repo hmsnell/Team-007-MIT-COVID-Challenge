@@ -1,0 +1,46 @@
+---
+title: "mitcvs"
+author: "Jenny Zhu"
+date: "5/30/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+cvs <- read.csv("cvsaddress.txt", header=F)
+colnames(cvs) <- c("address1", "city", "statezip")
+head(cvs)
+cvs.data <- mutate(cvs, zipcode = trimws(substr(statezip, 4, 9)))
+head(cvs.data)
+```
+
+```{r}
+# get geographical coordinates from zipcode
+require(zipcode)
+data(zipcode)
+cvs.zips <- merge(cvs.data, zipcode, by.x='zipcode', by.y='zip')
+cvs.zips
+```
+
+```{r}
+# load libraries
+library(dplyr)
+library(rgdal)
+library(ggplot2)
+library(leaflet)
+# set factors to false
+options(stringsAsFactors = FALSE)
+```
+
+```{r}
+cvs_locations_df <- as.data.frame(cvs.zips)
+str(cvs_locations_df)
+
+# plot points on top of a leaflet basemap
+site_locations <- leaflet(cvs_locations_df) %>%
+  addTiles() %>%
+  addCircleMarkers(color = "navy", radius=8, lng = ~longitude, lat = ~latitude, popup = ~statezip)
+
+site_locations
+```
+
