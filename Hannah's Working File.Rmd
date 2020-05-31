@@ -17,6 +17,7 @@ library(maps)
 library("rnaturalearth")
 library("rnaturalearthdata")
 library(rgeos)
+library(USAboundaries)
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 ```
@@ -115,7 +116,7 @@ statepharmacy <- uspharmacies %>%
   group_by(State) %>% 
   mutate(totalpharmacies = n()) 
 statepharmacy <- statepharmacy %>% 
-  mutate(ratio = totalpharmacies / Population) %>% 
+  mutate(ratio = (totalpharmacies / Population)*10000) %>% 
   select(State, Population, totalpharmacies, ratio, Latitude, Longitude) %>% 
   distinct(State, .keep_all = TRUE) %>% 
   filter(!State %in% c("VI", "GU", "PR"))
@@ -182,18 +183,22 @@ sf_cent <- st_centroid(states)
 ```
 
 ```{r}
+library(RColorBrewer)
 colnames(states)[3] <- "State"
 colnames(sf_cent)[3] <- "State"
 
 states <- states %>% 
   left_join(statepharmacy, by = "State")
 
+sf_cent2 <- sf_cent %>% 
+  filter(!State %in% c("DE", "AK", "CT", "GA", "IL", "LA", "NV", "NJ", "NM", "NY", "ND", "RI"))
+
 ggplot() +
-  geom_sf(data = states, aes(fill = ratio)) + 
-  #geom_text(data = states, aes(Longitude, Latitude, label = State), size = 2.5) +
-  labs(x = "Longitude", y = "Latitude", title = "Ratio of Potential Pharmacies for COVID-19 Testing \n to Population Density per State") 
-# + 
-#   geom_text(data = sf_cent, aes(label = State, x = Longitude, y = Latitude, color = 'yellow'))
+  geom_sf(data = states, aes(fill = ratio)) + scale_fill_distiller(palette = "Spectral") +
+  labs(x = "Longitude", y = "Latitude", title = "Ratio of Potential Pharmacies for COVID-19 Testing \n to Population Density per State", fill = "Number of \n Pharmacies per 10,000 \n People", colour = "Label") + 
+  geom_sf(data = sf_cent2, aes(col = "Have Not \n Reached Minimum \n Testing Quota"))
+
+
 ```
 
 
